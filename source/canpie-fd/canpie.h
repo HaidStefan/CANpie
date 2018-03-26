@@ -83,8 +83,8 @@
 **                                                                            **
 \*----------------------------------------------------------------------------*/
 
-#include "cp_compiler.h"
-#include "cp_platform.h"       // Architecture dependent definitions
+#include "mc_compiler.h"			// Compiler denpendent data types and definitions
+#include "cp_platform.h"      // Architecture dependent definitions
 
 
 /*----------------------------------------------------------------------------*\
