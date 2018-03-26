@@ -206,7 +206,7 @@ void CpFifoIncOut(CpFifo_ts *ptsFifoV);
 ** This function initialises a CA message FIFO. The paramter
 ** \a ptsCanMsgV points to an array of CpCanMsg_ts elements.
 ** The number of messages which can be stored inside the array
-** is determined by the parameter \a ulSizeV.
+** is determined by the paramter \a ulSizeV.
 **
 ** Here is an example for initialisation of a CAN message FIFO:
 ** \code
