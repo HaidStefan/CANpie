@@ -59,7 +59,7 @@
 ** Include files                                                              **
 **                                                                            **
 \*----------------------------------------------------------------------------*/
-#include "cp_compiler.h"      // compiler definitions
+#include "compiler.h"      // compiler definitions
 #include "cp_cc.h"         // definitions for CAN controller / target
 
 #include "mc_target.h"

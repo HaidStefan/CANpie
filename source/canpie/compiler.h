@@ -37,8 +37,8 @@
 //                                                                            //
 //============================================================================//
 
-#ifndef  CP_COMPILER_H_
-#define  CP_COMPILER_H_
+#ifndef  COMPILER_H_
+#define  COMPILER_H_
 
 
 //------------------------------------------------------------------------------
@@ -1206,4 +1206,4 @@ typedef  long                 _S32;
 #endif
 
 
-#endif      // CP_COMPILER_H_
+#endif      // COMPILER_H_
