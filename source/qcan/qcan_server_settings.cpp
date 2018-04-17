@@ -1,6 +1,6 @@
 //====================================================================================================================//
-// File:          qcan_server_logger.hpp                                                                              //
-// Description:   QCAN server - logging widget                                                                        //
+// File:          qcan_server_settings.cpp                                                                            //
+// Description:   QCAN classes - CAN server                                                                           //
 //                                                                                                                    //
 // Copyright (C) MicroControl GmbH & Co. KG                                                                           //
 // 53844 Troisdorf - Germany                                                                                          //
@@ -28,73 +28,38 @@
 //====================================================================================================================//
 
 
-#ifndef QCAN_SERVER_LOGGER_HPP_
-#define QCAN_SERVER_LOGGER_HPP_
-
-
 /*--------------------------------------------------------------------------------------------------------------------*\
 ** Include files                                                                                                      **
 **                                                                                                                    **
 \*--------------------------------------------------------------------------------------------------------------------*/
 
-#include <QtCore/QDateTime>
-#include <QtCore/QFile>
-#include <QtCore/QObject>
+#include <QtCore/QDebug>
 
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QTextBrowser>
-
-#include "qcan_defs.hpp"
-#include "qcan_namespace.hpp"
+#include "qcan_server_memory.hpp"
+#include "qcan_server_settings.hpp"
 
 
-using namespace QCan;
+/*--------------------------------------------------------------------------------------------------------------------*\
+** Definitions                                                                                                        **
+**                                                                                                                    **
+\*--------------------------------------------------------------------------------------------------------------------*/
 
-class QCanServerLogger : public QObject
+
+
+
+
+QCanServerSettings::QCanServerSettings()
 {
-    Q_OBJECT
+   pclSettingsP = new QSharedMemory(QString(QCAN_MEMORY_KEY));
+   btMemoryAttachedP = pclSettingsP->attach(QSharedMemory::ReadOnly);
+}
 
-public:
-    QCanServerLogger();
-    ~QCanServerLogger();
+QCanServerSettings::~QCanServerSettings()
+{
 
-    /** register class for logging
-    ** allow to send log messages */
-   void addLoggingSource(QObject *sender);
+}
 
-   bool isHidden(void);
-
-   /** set the name of the log file */
-   bool setFileName(const CAN_Channel_e ubChannelV, QString fileName);
-
-   /** set minimum log level that goes to a file */
-   void setLogLevel(const CAN_Channel_e ubChannelV, LogLevel_e teLogLevelV);
-
-   void show(void);
-
-   void hide(void);
-
-   LogLevel_e logLevel(const CAN_Channel_e ubChannelV);
-public slots:
-   void appendMessage(const CAN_Channel_e ubChannelV,
-                      const QString & clLogMessageV,
-                      LogLevel_e teLogLevelV = eLOG_LEVEL_INFO);
-
-private slots:
-   void onChangeLogLevel(QAction * pclActionV);
-   void onClearLog(void);
-   void onSetLogFile(void);
-   void onShowLogMenu(const QPoint &pos);
-
-private:
-   QDateTime      clTimeP;
-   QString        clLogMessageP;
-   QFile *        apclLogFileP[QCAN_NETWORK_MAX];
-   LogLevel_e     ateLogLevelP[QCAN_NETWORK_MAX];
-   CAN_Channel_e  teCanChannelP;
-   QMainWindow  * pclLogWindowP;
-   QTabWidget   * pclLogTabP;
-   QTextBrowser * apclLogTextP[QCAN_NETWORK_MAX];
-};
-
-#endif // QCAN_SERVER_LOGGER_HPP_
+bool QCanServerSettings::isServerActive( void)
+{
+   return (btMemoryAttachedP);
+}

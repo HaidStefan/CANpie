@@ -1,6 +1,6 @@
 //============================================================================//
-// File:          plugin_loader_main.cpp                                      //
-// Description:   Example application to load CANpie plugins                  //
+// File:          qcan_dump.cpp                                               //
+// Description:   Dump CAN messages                                           //
 //                                                                            //
 // Copyright (C) MicroControl GmbH & Co. KG                                   //
 // 53844 Troisdorf - Germany                                                  //
@@ -26,24 +26,62 @@
 //                                                                            //
 //============================================================================//
 
+#include <QtCore/QCoreApplication>
+#include <QtCore/QCommandlineParser>
+#include <QtCore/QTimer>
 
-/*----------------------------------------------------------------------------*\
-** Include files                                                              **
-**                                                                            **
-\*----------------------------------------------------------------------------*/
+#include <QCanSocket>
 
-#include <QtWidgets>
-#include <plugin_loader.hpp>
+//-----------------------------------------------------------------------------
+/*!
+** \anchor can-dump
+** \class QCanDump
+** \brief Command line tool - dump CAN messages
+**
+** Info about can-dump command ..
+**
+*/
 
-
-//! [0]
-int main(int argv, char *args[])
+class QCanDump : public QObject
 {
-    QApplication app(argv, args);
+   Q_OBJECT
 
-    PluginLoader window;
-    window.show();
+public:
+   QCanDump(QObject *parent = 0);
 
-    return app.exec();
-}
-//! [0]
+
+signals:
+   void finished();
+
+public slots:
+   void aboutToQuitApp(void);
+
+   /*!
+   ** The function evaluates the command parameters of the ..
+   */
+   void runCmdParser(void);
+
+   void socketConnected();
+   void socketDisconnected();
+   void socketError(QAbstractSocket::SocketError teSocketErrorV);
+   void socketReceive(uint32_t ulFrameCntV);
+   void quit();
+   
+private:
+
+   QCoreApplication *   pclAppP;
+
+   QCommandLineParser   clCmdParserP;
+   QCanSocket           clCanSocketP;
+   uint8_t              ubChannelP;
+   
+   QTimer               clActivityTimerP;
+   bool                 btTimeStampP;
+   bool                 btErrorFramesP;
+   bool                 btQuitNeverP;
+   uint32_t             ulQuitTimeP;
+   uint32_t             ulQuitCountP;
+};
+
+
+

@@ -1,6 +1,6 @@
 #=============================================================================#
-# File:          can-send.pro                                                 #
-# Description:   qmake project file for can-send command                      #
+# File:          can-config.pro                                               #
+# Description:   qmake project file for can-config command                    #
 #                                                                             #
 # Copyright (C) MicroControl GmbH & Co. KG                                    #
 # 53844 Troisdorf - Germany                                                   #
@@ -11,7 +11,7 @@
 #---------------------------------------------------------------
 # Name of QMake project
 #
-QMAKE_PROJECT_NAME = "can-send"
+QMAKE_PROJECT_NAME = "can-config"
 
 #---------------------------------------------------------------
 # template type
@@ -26,10 +26,10 @@ QT += core network
 #---------------------------------------------------------------
 # target file name
 #
-TARGET = can-send
+TARGET = can-config
 
 #---------------------------------------------------------------
-# Directory for target file
+# directory for target file
 #
 DESTDIR = ../../../../bin
 
@@ -47,7 +47,7 @@ OBJECTS_DIR = ../../../../objs
 #---------------------------------------------------------------
 # project configuration and compiler options
 #
-CONFIG += release
+CONFIG += debug_and_release
 CONFIG += warn_on
 CONFIG += C++11
 CONFIG += silent
@@ -58,8 +58,8 @@ CONFIG += console
 # version of the application
 #
 VERSION_MAJOR = 0
-VERSION_MINOR = 84
-VERSION_BUILD = 0
+VERSION_MINOR = 10
+VERSION_BUILD = 1
 
 
 #---------------------------------------------------------------
@@ -105,7 +105,7 @@ VPATH += ./../../../qcan
 # header files of project 
 #
 HEADERS =   qcan_socket.hpp            \
-            qcan_send.hpp
+            qcan_config.hpp
                 
             
 #---------------------------------------------------------------
@@ -117,7 +117,7 @@ SOURCES =   qcan_data.cpp              \
             qcan_frame_error.cpp       \
             qcan_socket.cpp            \
             qcan_timestamp.cpp         \
-            qcan_send.cpp
+            qcan_config.cpp
                
 #---------------------------------------------------------------
 # OS specific settings 

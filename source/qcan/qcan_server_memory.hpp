@@ -1,6 +1,6 @@
 //====================================================================================================================//
-// File:          qcan_server_logger.hpp                                                                              //
-// Description:   QCAN server - logging widget                                                                        //
+// File:          qcan_server_memeory.hpp                                                                             //
+// Description:   QCAN classes - CAN server                                                                           //
 //                                                                                                                    //
 // Copyright (C) MicroControl GmbH & Co. KG                                                                           //
 // 53844 Troisdorf - Germany                                                                                          //
@@ -28,73 +28,37 @@
 //====================================================================================================================//
 
 
-#ifndef QCAN_SERVER_LOGGER_HPP_
-#define QCAN_SERVER_LOGGER_HPP_
-
-
 /*--------------------------------------------------------------------------------------------------------------------*\
 ** Include files                                                                                                      **
 **                                                                                                                    **
 \*--------------------------------------------------------------------------------------------------------------------*/
 
-#include <QtCore/QDateTime>
-#include <QtCore/QFile>
-#include <QtCore/QObject>
-
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QTextBrowser>
-
 #include "qcan_defs.hpp"
-#include "qcan_namespace.hpp"
 
+/*--------------------------------------------------------------------------------------------------------------------*\
+** Definitions                                                                                                        **
+**                                                                                                                    **
+\*--------------------------------------------------------------------------------------------------------------------*/
 
-using namespace QCan;
+#define  QCAN_MEMORY_KEY         "QCAN_SERVER_SHARED_KEY"
 
-class QCanServerLogger : public QObject
-{
-    Q_OBJECT
+/*--------------------------------------------------------------------------------------------------------------------*\
+** Structures                                                                                                         **
+**                                                                                                                    **
+\*--------------------------------------------------------------------------------------------------------------------*/
 
-public:
-    QCanServerLogger();
-    ~QCanServerLogger();
+typedef struct Server_s {
+   uint32_t ulVersionMajor;
+   uint32_t ulVersionMinor;
+} Server_ts;
 
-    /** register class for logging
-    ** allow to send log messages */
-   void addLoggingSource(QObject *sender);
+typedef struct Network_s {
+   uint32_t ulVersionMajor;
+   uint32_t ulVersionMinor;
+} Network_ts;
 
-   bool isHidden(void);
+typedef struct ServerSettings_s {
+   Server_ts   tsServer;
+   Network_ts  atsNetwork[QCAN_NETWORK_MAX];
+} ServerSettings_ts;
 
-   /** set the name of the log file */
-   bool setFileName(const CAN_Channel_e ubChannelV, QString fileName);
-
-   /** set minimum log level that goes to a file */
-   void setLogLevel(const CAN_Channel_e ubChannelV, LogLevel_e teLogLevelV);
-
-   void show(void);
-
-   void hide(void);
-
-   LogLevel_e logLevel(const CAN_Channel_e ubChannelV);
-public slots:
-   void appendMessage(const CAN_Channel_e ubChannelV,
-                      const QString & clLogMessageV,
-                      LogLevel_e teLogLevelV = eLOG_LEVEL_INFO);
-
-private slots:
-   void onChangeLogLevel(QAction * pclActionV);
-   void onClearLog(void);
-   void onSetLogFile(void);
-   void onShowLogMenu(const QPoint &pos);
-
-private:
-   QDateTime      clTimeP;
-   QString        clLogMessageP;
-   QFile *        apclLogFileP[QCAN_NETWORK_MAX];
-   LogLevel_e     ateLogLevelP[QCAN_NETWORK_MAX];
-   CAN_Channel_e  teCanChannelP;
-   QMainWindow  * pclLogWindowP;
-   QTabWidget   * pclLogTabP;
-   QTextBrowser * apclLogTextP[QCAN_NETWORK_MAX];
-};
-
-#endif // QCAN_SERVER_LOGGER_HPP_

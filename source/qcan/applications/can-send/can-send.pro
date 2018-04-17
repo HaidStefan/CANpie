@@ -1,6 +1,6 @@
 #=============================================================================#
-# File:          client.pro                                                   #
-# Description:   qmake project file for QCAN client example                   #
+# File:          can-send.pro                                                 #
+# Description:   qmake project file for can-send command                      #
 #                                                                             #
 # Copyright (C) MicroControl GmbH & Co. KG                                    #
 # 53844 Troisdorf - Germany                                                   #
@@ -11,7 +11,7 @@
 #---------------------------------------------------------------
 # Name of QMake project
 #
-QMAKE_PROJECT_NAME = "QCanClient"
+QMAKE_PROJECT_NAME = "can-send"
 
 #---------------------------------------------------------------
 # template type
@@ -21,48 +21,64 @@ TEMPLATE = app
 #---------------------------------------------------------------
 # Qt modules used
 #
-QT += core gui network widgets
+QT += core network
 
 #---------------------------------------------------------------
 # target file name
 #
-TARGET = QCanClient
+TARGET = can-send
 
 #---------------------------------------------------------------
-# directory for target file
+# Directory for target file
 #
 DESTDIR = ../../../../bin
 
+#---------------------------------------------------------------
+# Directory for intermediate moc files
+# 
+MOC_DIR = ../../../../objs
+
 #--------------------------------------------------------------------
-# Objects directory
+# Directory for object files
 #
-OBJECTS_DIR = ./objs/
+OBJECTS_DIR = ../../../../objs
+
 
 #---------------------------------------------------------------
 # project configuration and compiler options
 #
-CONFIG += debug
+CONFIG += debug_and_release
 CONFIG += warn_on
 CONFIG += C++11
 CONFIG += silent
+CONFIG += console
 
 
 #---------------------------------------------------------------
 # version of the application
 #
-VERSION = 0.63.2
+VERSION_MAJOR = 0
+VERSION_MINOR = 84
+VERSION_BUILD = 0
+
+
+#---------------------------------------------------------------
+# Target version
+#
+VERSION = $${VERSION_MAJOR}.$${VERSION_MINOR}.$${VERSION_BUILD}
 
 
 #---------------------------------------------------------------
 # definitions for preprocessor
 #
-DEFINES =  "MC_TARGET=MC_OS_LINUX"
-
+DEFINES += "VERSION_MAJOR=$$VERSION_MAJOR"\
+           "VERSION_MINOR=$$VERSION_MINOR"\
+           "VERSION_BUILD=$$VERSION_BUILD"
 
 #---------------------------------------------------------------
 # UI files
 #
-FORMS   =  ./forms/ClientDemo.ui
+FORMS   =  
 
 
 #---------------------------------------------------------------
@@ -71,54 +87,56 @@ FORMS   =  ./forms/ClientDemo.ui
 RESOURCES = 
 
 
-
 #---------------------------------------------------------------
 # include directory search path
 #
 INCLUDEPATH  = .
 INCLUDEPATH += ./../../
-INCLUDEPATH += ./../../../canpie-fd
+INCLUDEPATH += ./../../../qcan
 
 #---------------------------------------------------------------
 # search path for source files
 #
 VPATH  = .
-VPATH += ./../../
-VPATH += ./../../../canpie-fd
-
+VPATH += ./../..
+VPATH += ./../../../qcan
 
 #---------------------------------------------------------------
 # header files of project 
 #
-HEADERS += client_demo.hpp       \
-           qcan_frame.hpp        \
-           qcan_interface.hpp    \
-           qcan_socket.hpp
-
+HEADERS =   qcan_socket.hpp            \
+            qcan_send.hpp
+                
             
 #---------------------------------------------------------------
 # source files of project 
 #
-SOURCES +=  client_demo.cpp         \
-            client_main.cpp         \
-            canpie_frame_api.cpp    \
-            canpie_frame_error.cpp  \
-            canpie_frame.cpp        \
-            canpie_timestamp.cpp    \
-            qcan_frame.cpp          \
-            qcan_frame_api.cpp      \
-            qcan_frame_error.cpp    \
-            qcan_socket.cpp
-            
-H
-
+SOURCES =   qcan_data.cpp              \
+            qcan_frame.cpp             \
+            qcan_frame_api.cpp         \
+            qcan_frame_error.cpp       \
+            qcan_socket.cpp            \
+            qcan_timestamp.cpp         \
+            qcan_send.cpp
+        
 
 #---------------------------------------------------------------
 # OS specific settings 
 #
 macx {
-   message("Building '$$QMAKE_PROJECT_NAME' for Mac OS X ...")
 
+   CONFIG(debug, debug|release) {
+      message("Building '$$QMAKE_PROJECT_NAME' DEBUG version for Mac OS X ...")
+   } else {
+      message("Building '$$QMAKE_PROJECT_NAME' RELEASE version for Mac OS X ...")
+      DEFINES += QT_NO_WARNING_OUTPUT
+      DEFINES += QT_NO_DEBUG_OUTPUT
+   }
+
+   #--------------------------------------------------
+   # do not create application bundle
+   #
+   CONFIG -= app_bundle
    
    #--------------------------------------------------
    # The correct version of the MAC SDK might be 
@@ -137,10 +155,6 @@ macx {
    #
    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
    
-   #--------------------------------------------------
-   # Icon for application
-   #
-   #ICON = ./images/server.icns
 }
 
 win32 {
@@ -151,4 +165,5 @@ win32 {
       DEFINES += QT_NO_WARNING_OUTPUT
       DEFINES += QT_NO_DEBUG_OUTPUT
    }
+
 }

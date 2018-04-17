@@ -1,6 +1,6 @@
 #=============================================================================#
-# File:          can-dump.pro                                                 #
-# Description:   qmake project file for can-dump command                      #
+# File:          can-error.pro                                                #
+# Description:   qmake project file for can-error command                     #
 #                                                                             #
 # Copyright (C) MicroControl GmbH & Co. KG                                    #
 # 53844 Troisdorf - Germany                                                   #
@@ -11,7 +11,7 @@
 #---------------------------------------------------------------
 # Name of QMake project
 #
-QMAKE_PROJECT_NAME = "can-dump"
+QMAKE_PROJECT_NAME = "can-error"
 
 #---------------------------------------------------------------
 # template type
@@ -26,10 +26,10 @@ QT += core network
 #---------------------------------------------------------------
 # target file name
 #
-TARGET = can-dump
+TARGET = can-error
 
 #---------------------------------------------------------------
-# directory for target file
+# Directory for target file
 #
 DESTDIR = ../../../../bin
 
@@ -47,7 +47,7 @@ OBJECTS_DIR = ../../../../objs
 #---------------------------------------------------------------
 # project configuration and compiler options
 #
-CONFIG += debug
+CONFIG += debug_and_release
 CONFIG += warn_on
 CONFIG += C++11
 CONFIG += silent
@@ -58,7 +58,7 @@ CONFIG += console
 # version of the application
 #
 VERSION_MAJOR = 0
-VERSION_MINOR = 82
+VERSION_MINOR = 10
 VERSION_BUILD = 1
 
 
@@ -105,7 +105,7 @@ VPATH += ./../../../qcan
 # header files of project 
 #
 HEADERS =   qcan_socket.hpp            \
-            qcan_dump.hpp
+            qcan_error.hpp
                 
             
 #---------------------------------------------------------------
@@ -117,7 +117,7 @@ SOURCES =   qcan_data.cpp              \
             qcan_frame_error.cpp       \
             qcan_socket.cpp            \
             qcan_timestamp.cpp         \
-            qcan_dump.cpp
+            qcan_error.cpp
                
 #---------------------------------------------------------------
 # OS specific settings 
@@ -136,7 +136,7 @@ macx {
    # do not create application bundle
    #
    CONFIG -= app_bundle
-  
+   
    #--------------------------------------------------
    # The correct version of the MAC SDK might be 
    # necessary depending on the combination of
@@ -164,4 +164,5 @@ win32 {
       DEFINES += QT_NO_WARNING_OUTPUT
       DEFINES += QT_NO_DEBUG_OUTPUT
    }
+
 }

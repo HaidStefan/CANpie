@@ -1,7 +1,7 @@
 /objs/
 /.DS_Store
 /.qmake.stash
+/include
 /Makefile*
 /moc_*.cpp
-/ui_*.h
 /qrc_*.cpp

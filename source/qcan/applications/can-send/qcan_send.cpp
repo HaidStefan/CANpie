@@ -1,6 +1,6 @@
 //============================================================================//
-// File:          qcan_dump.cpp                                               //
-// Description:   Dump CAN messages                                           //
+// File:          qcan_send.cpp                                               //
+// Description:   Send CAN messages                                           //
 //                                                                            //
 // Copyright (C) MicroControl GmbH & Co. KG                                   //
 // 53844 Troisdorf - Germany                                                  //
@@ -26,11 +26,11 @@
 //                                                                            //
 //============================================================================//
 
-#include "qcan_dump.hpp"
-#include <QCanFrameError>
+#include "qcan_send.hpp"
 
-#include <QDebug>
-
+#include <QtCore/QDebug>
+#include <QtCore/QTime>
+#include <QtCore/QTimer>
 
 
 //----------------------------------------------------------------------------//
@@ -40,7 +40,7 @@
 int main(int argc, char *argv[])
 {
    QCoreApplication clAppT(argc, argv);
-   QCoreApplication::setApplicationName("can-dump");
+   QCoreApplication::setApplicationName("can-send");
    
    //----------------------------------------------------------------
    // get application version (defined in .pro file)
@@ -54,14 +54,14 @@ int main(int argc, char *argv[])
    //----------------------------------------------------------------
    // create the main class
    //
-   QCanDump clMainT;
+   QCanSend clMainT;
 
    
    //----------------------------------------------------------------
    // connect the signals
    //
    QObject::connect(&clMainT, SIGNAL(finished()),
-                    &clAppT,  SLOT(quit()));
+                    &clAppT, SLOT(quit()));
    
    QObject::connect(&clAppT, SIGNAL(aboutToQuit()),
                     &clMainT, SLOT(aboutToQuitApp()));
@@ -79,10 +79,10 @@ int main(int argc, char *argv[])
 
 
 //----------------------------------------------------------------------------//
-// QCanDump()                                                                 //
+// QCanSend()                                                                 //
 // constructor                                                                //
 //----------------------------------------------------------------------------//
-QCanDump::QCanDump(QObject *parent) :
+QCanSend::QCanSend(QObject *parent) :
     QObject(parent)
 {
    //----------------------------------------------------------------
@@ -90,6 +90,7 @@ QCanDump::QCanDump(QObject *parent) :
    //
    pclAppP = QCoreApplication::instance();
 
+   ubChannelP = eCAN_CHANNEL_NONE;
    
    //----------------------------------------------------------------
    // connect signals for socket operations
@@ -102,16 +103,13 @@ QCanDump::QCanDump(QObject *parent) :
    
    QObject::connect(&clCanSocketP, SIGNAL(error(QAbstractSocket::SocketError)),
                     this, SLOT(socketError(QAbstractSocket::SocketError)));
-
-   QObject::connect(&clCanSocketP, SIGNAL(framesReceived(uint32_t)),
-                    this, SLOT(socketReceive(uint32_t)));
+   
 }
-
 
 // shortly after quit is called the CoreApplication will signal this routine
 // this is a good place to delete any objects that were created in the
 // constructor and/or to stop any threads
-void QCanDump::aboutToQuitApp()
+void QCanSend::aboutToQuitApp()
 {
     // stop threads
     // sleep(1);   // wait for threads to stop.
@@ -123,16 +121,11 @@ void QCanDump::aboutToQuitApp()
 // quit()                                                                     //
 // call this routine to quit the application                                  //
 //----------------------------------------------------------------------------//
-void QCanDump::quit()
+void QCanSend::quit()
 {
-   if((btQuitNeverP == false) && (ulQuitTimeP > 0))
-   {
-      fprintf(stderr, "%s %d %s\n", 
-              qPrintable(tr("Quit after")),
-              ulQuitTimeP,
-              qPrintable(tr("[ms] without frame reception.")));
-   }
-   
+   //qDebug() << "I will quit soon";
+   clCanSocketP.disconnectNetwork();
+
    emit finished();
 }
 
@@ -141,15 +134,13 @@ void QCanDump::quit()
 // runCmdParser()                                                             //
 // 10ms after the application starts this method will parse all commands      //
 //----------------------------------------------------------------------------//
-void QCanDump::runCmdParser()
+void QCanSend::runCmdParser(void)
 {
    //----------------------------------------------------------------
    // setup command line parser
    //
-   clCmdParserP.setApplicationDescription(tr("Show messages of CAN interface"));
+   clCmdParserP.setApplicationDescription(tr("Send messages on CAN interface"));
    clCmdParserP.addHelpOption();
-   clCmdParserP.addVersionOption();
-
    
    //----------------------------------------------------------------
    // argument <interface> is required
@@ -158,37 +149,75 @@ void QCanDump::runCmdParser()
                                       tr("CAN interface, e.g. can1"));
 
    //-----------------------------------------------------------
+   // command line option: -D <dlc>
+   //
+   QCommandLineOption clOptFrameDlcT("D", 
+         tr("Set DLC to <dlc>"),
+         tr("dlc"),
+         "0");          // default value
+   clCmdParserP.addOption(clOptFrameDlcT);
+   
+   //-----------------------------------------------------------
+   // command line option: -f <format>
+   //
+   QCommandLineOption clOptFormatT("f", 
+         tr("Set frame format to [CBFF|CEFF|FBFF|FEFF]"),
+         tr("format"),
+         "CBFF");       // default value
+   clCmdParserP.addOption(clOptFormatT);
+   
+   //-----------------------------------------------------------
+   // command line option: -g <msec>
+   //
+   QCommandLineOption clOptGapT("g", 
+         tr("Time gap in milli-seconds between multiple CAN frames"),
+         tr("gap"),
+         "0");          // default value
+   clCmdParserP.addOption(clOptGapT);
+   
+   //-----------------------------------------------------------
    // command line option: -H <host>
    //
    QCommandLineOption clOptHostT("H", 
          tr("Connect to <host>"),
          tr("host"));
    clCmdParserP.addOption(clOptHostT);
-
+   
+   //-----------------------------------------------------------
+   // command line option: -i <type>
+   //
+   QCommandLineOption clOptIncT("i", 
+         tr("Increment the requested type"),
+         tr("I|D|P"));
+   clCmdParserP.addOption(clOptIncT);
+   
+   //-----------------------------------------------------------
+   // command line option: -I <id>
+   //
+   QCommandLineOption clOptFrameIdT("I", 
+         tr("Set identifier to <id>"),
+         tr("id"));
+   clCmdParserP.addOption(clOptFrameIdT);
+   
    //-----------------------------------------------------------
    // command line option: -n <count>
    //
    QCommandLineOption clOptCountT("n", 
-         tr("Terminate after reception of <count> CAN frames"),
-         tr("count"));
+         tr("Terminate after transmission of <count> CAN frames"),
+         tr("count"),
+         "1");          // default value
    clCmdParserP.addOption(clOptCountT);
    
    //-----------------------------------------------------------
-   // command line option: -t 
+   // command line option: -P <payload>
    //
-   QCommandLineOption clOptTimeStampT("t", 
-         tr("Show time-stamp"));
-   clCmdParserP.addOption(clOptTimeStampT);
-
-   //-----------------------------------------------------------
-   // command line option: -T 
-   //
-   QCommandLineOption clOptTimeOutT("T", 
-         tr("Terminate after <msec> without reception"),
-         tr("msec"),
-         "0");
-   clCmdParserP.addOption(clOptTimeOutT);
-
+   QCommandLineOption clOptFrameDataT("P", 
+         tr("Set payload to <payload>, i.e. a string of hex values"),
+         tr("payload"));
+   clCmdParserP.addOption(clOptFrameDataT);
+   
+   
+   clCmdParserP.addVersionOption();
 
    //----------------------------------------------------------------
    // Process the actual command line arguments given by the user
@@ -234,24 +263,86 @@ void QCanDump::runCmdParser()
    //
    ubChannelP = (uint8_t) (slChannelT);
 
-   
    //----------------------------------------------------------------
-   // check for time-stamp
+   // get frame format
    //
-   btTimeStampP = clCmdParserP.isSet(clOptTimeStampT);
-
-   
-   //----------------------------------------------------------------
-   // check for termination options
-   //
-   btQuitNeverP = true;
-   ulQuitCountP = clCmdParserP.value(clOptCountT).toInt(Q_NULLPTR, 10);    
-   ulQuitTimeP  = clCmdParserP.value(clOptTimeOutT).toInt(Q_NULLPTR, 10);      
-   if ((ulQuitCountP > 0) || (ulQuitTimeP > 0))
+   if (clCmdParserP.value(clOptFormatT).contains("CBFF", Qt::CaseInsensitive))
    {
-      btQuitNeverP = false; 
+      ubFrameFormatP = QCanFrame::eFORMAT_CAN_STD;
+   }
+   else if (clCmdParserP.value(clOptFormatT).contains("CEFF", Qt::CaseInsensitive))
+   {
+      ubFrameFormatP = QCanFrame::eFORMAT_CAN_EXT;
+   }
+   else if (clCmdParserP.value(clOptFormatT).contains("FBFF", Qt::CaseInsensitive))
+   {
+      ubFrameFormatP = QCanFrame::eFORMAT_FD_STD;
+   }
+   else if (clCmdParserP.value(clOptFormatT).contains("FEFF", Qt::CaseInsensitive))
+   {
+      ubFrameFormatP = QCanFrame::eFORMAT_FD_EXT;
+   }
+   else
+   {
+      fprintf(stderr, "%s \n\n", 
+              qPrintable(tr("Error: Unknown option for frame format.")));
+      clCmdParserP.showHelp(0);
    }
    
+   //----------------------------------------------------------------
+   // get identifier value
+   //
+   ulFrameIdP = clCmdParserP.value(clOptFrameIdT).toInt(Q_NULLPTR, 16);
+   
+   //----------------------------------------------------------------
+   // get DLC value
+   //
+   ubFrameDlcP = clCmdParserP.value(clOptFrameDlcT).toInt(Q_NULLPTR, 10);
+   if( ((ubFrameFormatP > QCanFrame::eFORMAT_CAN_EXT) && (ubFrameDlcP > 15)) ||
+       ((ubFrameFormatP < QCanFrame::eFORMAT_FD_STD)  && (ubFrameDlcP >  8)) )
+   {
+      fprintf(stderr, "%s \n\n", 
+              qPrintable(tr("Error: DLC value out of range.")));
+      clCmdParserP.showHelp(0);
+   }
+   
+   //----------------------------------------------------------------
+   // get payload
+   //
+   QString clPayloadT = clCmdParserP.value(clOptFrameDataT);
+   for (uint8_t ubCntT = 0; ubCntT < QCAN_MSG_DATA_MAX; ubCntT++)
+   {
+      if (clPayloadT.size() >= 2)
+      {
+         //-----------------------------------------------------
+         // convert two characters from string and remove them
+         // afterwards
+         //
+         aubFrameDataP[ubCntT] = clPayloadT.left(2).toUShort(Q_NULLPTR, 16);
+         clPayloadT.remove(0, 2);
+      }
+      else
+      {
+         aubFrameDataP[ubCntT] = 0x00;
+      }
+   }
+   
+   //----------------------------------------------------------------
+   // get number of frames to send
+   //
+   ulFrameCountP = clCmdParserP.value(clOptCountT).toInt(Q_NULLPTR, 10);
+
+   //----------------------------------------------------------------
+   // get time gap between frames
+   //
+   ulFrameGapP = clCmdParserP.value(clOptGapT).toInt(Q_NULLPTR, 10);
+   
+   //----------------------------------------------------------------
+   // get increment type
+   //
+   btIncIdP  = clCmdParserP.value(clOptIncT).contains("I", Qt::CaseInsensitive);
+   btIncDlcP = clCmdParserP.value(clOptIncT).contains("D", Qt::CaseInsensitive);
+   btIncDataP= clCmdParserP.value(clOptIncT).contains("P", Qt::CaseInsensitive);
    
    //----------------------------------------------------------------
    // set host address for socket
@@ -261,11 +352,108 @@ void QCanDump::runCmdParser()
       QHostAddress clAddressT = QHostAddress(clCmdParserP.value(clOptHostT));
       clCanSocketP.setHostAddress(clAddressT);
    }
-   
+
    //----------------------------------------------------------------
    // connect to CAN interface
    //
    clCanSocketP.connectNetwork((CAN_Channel_e) ubChannelP);
+
+}
+
+//----------------------------------------------------------------------------//
+// sendFrame()                                                                //
+//                                                                            //
+//----------------------------------------------------------------------------//
+void QCanSend::sendFrame(void)
+{
+   QTime          clSystemTimeT;
+   QCanTimeStamp  clCanTimeT;
+   
+   clSystemTimeT = QTime::currentTime();
+   clCanTimeT.fromMilliSeconds(clSystemTimeT.msec());
+   clCanFrameP.setTimeStamp(clCanTimeT);
+   
+   clCanSocketP.writeFrame(clCanFrameP);
+   
+   if (ulFrameCountP > 1)
+   {
+      ulFrameCountP--;
+      
+      //--------------------------------------------------------
+      // test if identifier value must be incemented
+      //
+      if (btIncIdP)
+      {
+         ulFrameIdP++;
+         
+         //------------------------------------------------
+         // test for wrap-around
+         //
+         if (clCanFrameP.isExtended())
+         {
+            if (ulFrameIdP > QCAN_FRAME_ID_MASK_EXT)
+            {
+               ulFrameIdP = 0;
+            }
+         }
+         else
+         {
+            if (ulFrameIdP > QCAN_FRAME_ID_MASK_STD)
+            {
+               ulFrameIdP = 0;
+            }
+         }
+         
+         //------------------------------------------------
+         // set new identifier value
+         //
+         clCanFrameP.setIdentifier(ulFrameIdP);
+      }
+      
+      //--------------------------------------------------------
+      // test if DLC value must be incemented
+      //
+      if (btIncDlcP)
+      {
+         ubFrameDlcP++;
+         
+         //------------------------------------------------
+         // test for wrap-around
+         //
+         if (clCanFrameP.frameFormat() > QCanFrame::eFORMAT_CAN_EXT)
+         {
+            if (ubFrameDlcP > 15)
+            {
+               ubFrameDlcP = 0;
+            }
+         }
+         else
+         {
+            if (ubFrameDlcP > 8)
+            {
+               ubFrameDlcP = 0;
+            }
+         }
+         //------------------------------------------------
+         // set new DLC value
+         //
+         clCanFrameP.setDlc(ubFrameDlcP);
+      }  
+      
+      //--------------------------------------------------------
+      // test if data value must be incemented
+      //
+      if (btIncDataP)
+      {
+         clCanFrameP.setDataUInt32(0, clCanFrameP.dataUInt32(0) + 1);
+      }
+      
+      QTimer::singleShot(ulFrameGapP, this, SLOT(sendFrame()));
+   }
+   else
+   {
+      QTimer::singleShot(50, this, SLOT(quit()));
+   }
 
 }
 
@@ -274,26 +462,28 @@ void QCanDump::runCmdParser()
 // socketConnected()                                                          //
 //                                                                            //
 //----------------------------------------------------------------------------//
-void QCanDump::socketConnected()
+void QCanSend::socketConnected()
 {
-   qDebug() << "Connected to CAN " << ubChannelP;
-   qDebug() << "Quit time" << ulQuitTimeP;
-   
-   if ((btQuitNeverP == false) && (ulQuitTimeP > 0))
+   //----------------------------------------------------------------
+   // initial setup of CAN frame
+   //
+   clCanFrameP.setFrameFormat((QCanFrame::Format_e) ubFrameFormatP);
+   clCanFrameP.setIdentifier(ulFrameIdP);
+   clCanFrameP.setDlc(ubFrameDlcP);
+   for(uint8_t ubCntT = 0; ubCntT < clCanFrameP.dataSize(); ubCntT++)
    {
-      clActivityTimerP.setInterval(ulQuitTimeP);
-      clActivityTimerP.setSingleShot(true);
-      connect(&clActivityTimerP, SIGNAL(timeout()), SLOT(quit()));
-      clActivityTimerP.start();
+      clCanFrameP.setData(ubCntT, aubFrameDataP[ubCntT]);
    }
+    
+   QTimer::singleShot(10, this, SLOT(sendFrame()));
 }
 
 
 //----------------------------------------------------------------------------//
 // socketDisconnected()                                                       //
-//                                                                            //
+// show error message and quit                                                //
 //----------------------------------------------------------------------------//
-void QCanDump::socketDisconnected()
+void QCanSend::socketDisconnected()
 {
    qDebug() << "Disconnected from CAN " << ubChannelP;
    
@@ -304,7 +494,7 @@ void QCanDump::socketDisconnected()
 // socketError()                                                              //
 // show error message and quit                                                //
 //----------------------------------------------------------------------------//
-void QCanDump::socketError(QAbstractSocket::SocketError teSocketErrorV)
+void QCanSend::socketError(QAbstractSocket::SocketError teSocketErrorV)
 {
    Q_UNUSED(teSocketErrorV);  // parameter not used 
    
@@ -316,75 +506,3 @@ void QCanDump::socketError(QAbstractSocket::SocketError teSocketErrorV)
            qPrintable(clCanSocketP.errorString()));
    quit();
 }
-
-
-//----------------------------------------------------------------------------//
-// socketReceive()                                                            //
-// show messages that are available                                           //
-//----------------------------------------------------------------------------//
-void QCanDump::socketReceive(uint32_t ulFrameCntV)
-{
-   QByteArray     clCanDataT;
-   QCanFrame      clCanFrameT;
-   QCanFrameApi   clCanApiT;
-   QCanFrameError clCanErrorT;
-   QString        clCanStringT;
-   QCanData::Type_e  ubFrameTypeT;
-   
-   if ((btQuitNeverP == false) && (ulQuitTimeP > 0))
-   {
-      clActivityTimerP.start(ulQuitTimeP);
-   }
-   
-   while(ulFrameCntV)
-   {
-      if(clCanSocketP.read(clCanDataT, &ubFrameTypeT) == true)
-      {
-         switch(ubFrameTypeT)
-         {
-            case QCanData::eTYPE_API:
-               if (clCanApiT.fromByteArray(clCanDataT) == true)
-               {
-                  clCanStringT = clCanApiT.toString(btTimeStampP);
-                  fprintf(stderr, "%s\n", qPrintable(clCanStringT));
-               }
-               break;
-               
-            case QCanData::eTYPE_CAN:
-               if (clCanFrameT.fromByteArray(clCanDataT) == true)
-               {
-                  clCanStringT = clCanFrameT.toString(btTimeStampP);
-                  fprintf(stderr, "%s\n", qPrintable(clCanStringT));
-               }
-               break;
-
-            case QCanData::eTYPE_ERROR:
-               if (clCanErrorT.fromByteArray(clCanDataT) == true)
-               {
-                  clCanStringT = clCanErrorT.toString(btTimeStampP);
-                  fprintf(stderr, "%s\n", qPrintable(clCanStringT));
-               }
-               break;
-            default:
-
-               break;
-               
-         }
-      }
-      ulFrameCntV--;
-      ulQuitCountP--;
-      if(ulQuitCountP == 0)
-      {
-         quit();
-      }
-   }
-}
-
-
-
-
-
-
-
-
-
