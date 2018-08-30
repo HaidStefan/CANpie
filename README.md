@@ -25,4 +25,4 @@ of the documentation.
 
 # Documentation
 
-The documentation is avaliable on https://canpie.github.io/ .
+The documentation is avaliable on https://canpie.github.io .
