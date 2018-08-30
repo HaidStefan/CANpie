@@ -151,11 +151,13 @@ CPP_INLINE void CpFifoInit(CpFifo_ts *ptsFifoV, CpCanMsg_ts *ptsCanMsgV,
 //----------------------------------------------------------------------------//
 CPP_INLINE bool_t CpFifoIsEmpty(CpFifo_ts *ptsFifoV)
 {
-   bool_t btResultT = false;
+   //bool_t btResultT = false;
+   bool_t btResultT = 0;
 
    if (ptsFifoV->ulState == 0x0001)
    {
-      btResultT = true;
+      //btResultT = true;
+      btResultT = 1;
    }
 
    return (btResultT);
@@ -168,11 +170,13 @@ CPP_INLINE bool_t CpFifoIsEmpty(CpFifo_ts *ptsFifoV)
 //----------------------------------------------------------------------------//
 CPP_INLINE bool_t CpFifoIsFull(CpFifo_ts *ptsFifoV)
 {
-   bool_t btResultT = false;
+   //bool_t btResultT = false;
+   bool_t btResultT = 0;
 
    if (ptsFifoV->ulState == 0x0002)
    {
-      btResultT = true;
+	   //btResultT = true;
+	   btResultT = 1;
    }
 
    return (btResultT);

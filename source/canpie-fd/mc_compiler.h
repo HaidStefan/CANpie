@@ -830,7 +830,9 @@ typedef  long long            int64_t;
 #define  CPP_PARM_UNUSED(x)   x
 #endif
 
-typedef  int32_t              Status_tv;
+
+//typedef  int32_t              Status_tv; //TODO??
+typedef  int                  Status_tv;
 
 typedef  unsigned char        bool_t;
 typedef  unsigned char        uint8_t;
@@ -839,6 +841,8 @@ typedef  unsigned short       uint16_t;
 typedef  short                int16_t;
 typedef  unsigned long        uint32_t;
 typedef  long                 int32_t;
+
+
 
 
 #endif
